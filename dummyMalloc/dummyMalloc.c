@@ -1,14 +1,16 @@
 #include <stdio.h>
 #include <unistd.h>
 #include <errno.h>
+#include <string.h>
 #define align4(x) (((((x)-1)>>3)<<3)+8)
 #define BLOCK_SIZE   sizeof( struct s_block)
 
 struct s_block{
-    size_t size;
-    struct s_block *next;
-    int free;
-    char data[1];
+    size_t size;            //8 bytes
+    struct s_block *next;   //8 bytes
+    struct s_block *prev;   //8 bytes
+    int free;               //4 bytes
+    char data[1];           // 1
 };
 void *base = NULL;
 
@@ -45,6 +47,16 @@ void split_block(struct s_block *block, size_t size){
         block->next = new;
         block->free  = 0;
     }
+struct s_block *merge(struct s_block * b){
+    if (b->next != NULL && b->next->free){
+        b->size += BLOCK_SIZE + b->next->size;
+        b->next = b->next->next;
+        if (b->next != NULL){
+            b->next->prev = b;
+        }
+    }
+    return (b);
+}
 void *d_malloc(size_t size){
     struct s_block * b;
     struct s_block *last;
@@ -77,15 +89,6 @@ void *d_malloc(size_t size){
     }
 int main(int argc, char *argv[]){
     
-    struct s_block * block = (struct s_block*) d_malloc(sizeof(struct s_block) + 8);
-    block->size = 8;
-    block->next = NULL;
-    block->free = 1;
-
-    if (block->free){
-        printf("Yes its free\n");
-    }else {
-        printf("Not free\n");
-    }
-
+    struct s_block * block = (struct s_block*) d_malloc(sizeof(struct s_block) + 100);
+    printf("%d\n", sizeof(*block));
 }
